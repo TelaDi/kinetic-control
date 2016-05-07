@@ -13,7 +13,8 @@
 #include <Servo.h>
 Servo servo;
 /* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
-RF24 radio(7, 8);
+//RF24 radio(7, 8);
+RF24 radio(9, 10);
 const uint64_t pipe = 0xF0F1F2F3F4LL;
 byte data[] = {0, 0, 0};
 unsigned long lastCommand;
@@ -26,7 +27,7 @@ void setup() {
   // put your setup code here, to run once:
   SerialPC.begin(115200);
   radio.begin();
-  delay(2);
+  delay(20);
   radio.setChannel(9); // канал (0-127)  // скорость, RF24_250KBPS, RF24_1MBPS или RF24_2MBPS// RF24_250KBPS на nRF24L01 (без +) неработает.// меньше скорость, выше чувствительность приемника.
   radio.setDataRate(RF24_1MBPS);   // мощьность передатчика RF24_PA_MIN=-18dBm, RF24_PA_LOW=-12dBm, RF24_PA_MED=-6dBM,
   radio.setPALevel(RF24_PA_HIGH);
@@ -36,6 +37,16 @@ void setup() {
 }
 
 void loop() {
+  if (radio.available()) { // проверяем не пришло ли чего в буфер.
+    radio.read(data, sizeof(data)); // читаем данные, указываем сколько байт читать
+    for(int i = 0; i < 3; i++) {
+      Serial.print(data[i]);
+      Serial.print(" ");
+    }
+    Serial.println("");
+    
+  }
+  /*
   if (millis() - lastCommand > TIMEOUT) {
     stoped();
   }
@@ -71,7 +82,7 @@ void loop() {
     }
     
     lastCommand = millis();
-  }
+  }*/
 }
 
 void stoped() {

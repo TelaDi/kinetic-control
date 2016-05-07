@@ -16,6 +16,7 @@ void setup()
 {
   // открываем последовательный порт
   SerialUSB.begin(115200);
+  delay(3000);
   // пока не появились данные с USB
   // ждём
   //while (!SerialUSB.available()) {}
@@ -23,13 +24,13 @@ void setup()
   SerialUSB.println("Begin init...");
  
   // инициализация гироскопа
-  gyro.begin();
+  //gyro.begin();
   // инициализация акселерометра
   accel.begin();
   // инициализация компаса
   //compass.begin();
   // инициализация барометра
-  barometer.begin();
+  //barometer.begin();
   // выводим сообщение об удачной инициализации
   SerialUSB.println("Init completed");
   //SerialUSB.println("Gyroscope\t\t\tAccelerometer\t\t\tCompass\t\tBarometer");
@@ -56,6 +57,7 @@ void loop()
   // вывод направления и величины ускорения по оси Z
   SerialUSB.print(accel.readZ_G());
   SerialUSB.print("\t\t");
+ 
  /*
   // калибровка компаса
   compass.readXYZ_Calib();
