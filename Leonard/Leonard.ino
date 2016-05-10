@@ -1,91 +1,104 @@
+//Serial для соединения с ПК
 #define SerialPC Serial
+//Serial на 0 и 1 пинах
 #define SerialHard Serial1
-
-#define SERVO_MID 90
-#define SERVO_LEFT SERVO_MID - 30
-#define SERVO_RIGHT SERVO_MID + 30
-#define EG_PIN 5
 #define TIMEOUT 1000
 //Библиотеки для работы с NRF24
 #include <SPI.h>
 #include "RF24.h"
-
-#include <Servo.h>
-Servo servo;
-/* Hardware configuration: Set up nRF24L01 radio on SPI bus plus pins 7 & 8 */
-//RF24 radio(7, 8);
-RF24 radio(9, 10);
+/* CE и CSN на 7 и 8 пинах */
+RF24 radio(7, 8);
+//Адрес трубы
 const uint64_t pipe = 0xF0F1F2F3F4LL;
+//Пины для управления моторами In1, In2, ENA(PWM)
+const byte motor1[] = {2, 3, 9};
+//Пины для управления моторами In3, In4, ENB (PWM)
+const byte motor2[] = {4, 5, 10};
+//Формат передаваемых данных
 byte data[] = {0, 0, 0};
+//Время прихода последней команды
 unsigned long lastCommand;
 void setup() {
-  servo.attach(9);
-  servo.write(SERVO_MID);
+  //Выставляем пины на выход
+  for (int i = 0; i < 3; i++) {
+    pinMode(motor1[i], OUTPUT);
+    pinMode(motor2[i], OUTPUT);
+    digitalWrite(motor1[i], LOW);
+    digitalWrite(motor2[i], LOW);
+  }
 
-
-  pinMode(EG_PIN, OUTPUT);
-  // put your setup code here, to run once:
-  SerialPC.begin(115200);
+  //Инициализация модуля NRF24
   radio.begin();
   delay(20);
-  radio.setChannel(9); // канал (0-127)  // скорость, RF24_250KBPS, RF24_1MBPS или RF24_2MBPS// RF24_250KBPS на nRF24L01 (без +) неработает.// меньше скорость, выше чувствительность приемника.
-  radio.setDataRate(RF24_1MBPS);   // мощьность передатчика RF24_PA_MIN=-18dBm, RF24_PA_LOW=-12dBm, RF24_PA_MED=-6dBM,
+  //Настройки модуля
+  radio.setChannel(9); // канал (0-127)
+  // скорость, RF24_250KBPS/RF24_1MBPS/RF24_2MBPS.
+  radio.setDataRate(RF24_1MBPS);
+  //мощность передатчика RF24_PA_MIN=-18dBm, RF24_PA_LOW=-12dBm, RF24_PA_MED=-6dBM,
   radio.setPALevel(RF24_PA_HIGH);
-  radio.openReadingPipe(1, pipe); // открываем первую трубу с индитификатором "pipe"
-  radio.startListening(); // включаем приемник, начинаем слушать трубу
+  //Открываем трубу на чтение
+  radio.openReadingPipe(1, pipe);
+  //Начинаем слушать эфир
+  radio.startListening();
+  //устанавливанм время прихода последней команды
   lastCommand = millis();
 }
 
 void loop() {
-  if (radio.available()) { // проверяем не пришло ли чего в буфер.
-    radio.read(data, sizeof(data)); // читаем данные, указываем сколько байт читать
-    for(int i = 0; i < 3; i++) {
-      Serial.print(data[i]);
-      Serial.print(" ");
-    }
-    Serial.println("");
-    
-  }
-  /*
+  //Если время прошедшее с момента последней команды больше чем TIMEOUT, останавливаем машинку
   if (millis() - lastCommand > TIMEOUT) {
     stoped();
   }
-  if (radio.available()) { // проверяем не пришло ли чего в буфер.
-    radio.read(data, sizeof(data)); // читаем данные, указываем сколько байт читать
-    //Вперед
-    if (data[0] == 1 ) {
-      //analogWrite(EG_PIN,160);
-      //delay(50);
-      analogWrite(EG_PIN, 172);
-      delay(100);
-      analogWrite(EG_PIN, 174);
-    }//Назад
-    else if(data[0] == 255) {
-      //analogWrite(EG_PIN,160);
-      //delay(50);
-      analogWrite(EG_PIN, 145);
-      delay(100);
-      analogWrite(EG_PIN, 140);
+
+  //Если что-то пришло по радио
+  if (radio.available()) {
+    //Читаем данные
+    radio.read(data, sizeof(data));
+    //Если 1 - едем вперед, если 255 - едем назад, иначе останавливаемся
+    (data[0] == 1) ? forward() : (data[0] == 255) ? back() : stoped();
+    //Если разворачиваемся 1 - налево, 255 - направо, 0 ничего не меняем
+    if (data[2] == 1) {
+      left();
     }
-    else {
-      analogWrite(EG_PIN, 160);
+    else if (data[2] == 255) {
+      right();
     }
-    
-    if (data[2] == 0) {
-      servo.write(SERVO_MID);
-    }
-    else if (data[2] == 1) {
-      servo.write(SERVO_LEFT);
-    }
-    else {
-      servo.write(SERVO_RIGHT);
-    }
-    
+
+    //Фиксируем время прихода команды
     lastCommand = millis();
-  }*/
+  }
+
+}
+//Останавливаемся и блокируем моторы
+void stoped() {
+  setMotorParam(false, false, false, false, 0, 0);
 }
 
-void stoped() {
-  servo.write(SERVO_MID);
-  analogWrite(EG_PIN, 160);
+void forward() {
+  setMotorParam(true, false, true, false, data[1], data[1]);
+}
+
+void back() {
+  setMotorParam(false, true, false, true, data[1], data[1]);
+}
+
+void left() {
+  setMotorParam(true, false, false, true, 255, 255);
+}
+
+void right() {
+  setMotorParam(false, true, true, false, 255, 255);
+}
+
+void setMotorParam(bool d11, bool d12, bool d21, bool d22, int s1, int s2) {
+  //Устанавливаем направление движения моторов
+  digitalWrite(motor1[0], d11);
+  digitalWrite(motor1[1], d12);
+
+  digitalWrite(motor2[0], d21);
+  digitalWrite(motor2[1], d22);
+
+  //Устанавливаем скорость вращения моторов
+  analogWrite(motor1[2], s1);
+  analogWrite(motor2[2], s2);
 }
