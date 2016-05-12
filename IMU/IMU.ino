@@ -1,3 +1,4 @@
+#define SerialPC Serial
 // библиотека для работы I²C
 #include <Wire.h>
 // библиотека для работы с модулями IMU
@@ -15,13 +16,13 @@ Barometer barometer;
 void setup()
 {
   // открываем последовательный порт
-  SerialUSB.begin(115200);
+  SerialPC.begin(115200);
   delay(3000);
   // пока не появились данные с USB
   // ждём
   //while (!SerialUSB.available()) {}
   // выводим сообщение о начале инициализации
-  SerialUSB.println("Begin init...");
+  SerialPC.println("Begin init...");
  
   // инициализация гироскопа
   //gyro.begin();
@@ -32,46 +33,48 @@ void setup()
   // инициализация барометра
   //barometer.begin();
   // выводим сообщение об удачной инициализации
-  SerialUSB.println("Init completed");
-  //SerialUSB.println("Gyroscope\t\t\tAccelerometer\t\t\tCompass\t\tBarometer");
+  SerialPC.println("Init completed");
+  //SerialPC.println("Gyroscope\t\t\tAccelerometer\t\t\tCompass\t\tBarometer");
 }
  
 void loop()
 {
   // вывод угловой скорости относительно оси X
-//  SerialUSB.print(gyro.readX_DegPerSec());
-//  SerialUSB.print("\t");
+//  SerialPC.print(gyro.readX_DegPerSec());
+//  SerialPC.print("\t");
   // вывод угловой скорости относительно оси Y
-  //SerialUSB.print(gyro.readY_DegPerSec());
-//  SerialUSB.print("\t");
+  //SerialPC.print(gyro.readY_DegPerSec());
+//  SerialPC.print("\t");
   // вывод угловой скорости относительно оси Z
-//  SerialUSB.print(gyro.readZ_DegPerSec());
-//  SerialUSB.print("\t\t");
- 
+//  SerialPC.print(gyro.readZ_DegPerSec());
+//  SerialPC.print("\t\t");
+  int x = accel.readX_G();
   // вывод направления и величины ускорения по оси X
-  SerialUSB.print(accel.readX_G());
-  SerialUSB.print("\t");
+  SerialPC.print(x);
+  SerialPC.print("\t");
   // вывод направления и величины ускорения по оси Y
-  SerialUSB.print(accel.readY_G());
-  SerialUSB.print("\t");
+  int y = accel.readY_G();
+  SerialPC.print(y);
+  SerialPC.print("\t");
   // вывод направления и величины ускорения по оси Z
-  SerialUSB.print(accel.readZ_G());
-  SerialUSB.print("\t\t");
+  int z = accel.readZ_G();
+  SerialPC.print(z);
+  SerialPC.print("\t\t");
  
  /*
   // калибровка компаса
   compass.readXYZ_Calib();
   // выводим азимут относительно оси X
-  SerialUSB.print(compass.read_Yaw());
-  SerialUSB.print(" Degrees\t");
+  SerialPC.print(compass.read_Yaw());
+  SerialPC.print(" Degrees\t");
  
   // вывод значения абсолютного давления
-  SerialUSB.print(barometer.readPressureMillibars());
-  SerialUSB.print("\t");
+  SerialPC.print(barometer.readPressureMillibars());
+  SerialPC.print("\t");
   // вывод значения температуры окружающей среды
-  SerialUSB.print(barometer.readTemperatureC());
-  SerialUSB.print("\t");
+  SerialPC.print(barometer.readTemperatureC());
+  SerialPC.print("\t");
  */
-  SerialUSB.println("");
+  SerialPC.println("");
   delay(300);
 }
